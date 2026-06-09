@@ -15,7 +15,7 @@
       pname = "nole";
       version = "0.1.0";
       src = ./.;
-      vendorHash = "";
+      vendorHash = "sha256-e51nbkepzKB4mXwq+bXGHIElQgGoEqJ63x7d6tbLpFE=";
     };
 
     nixosModules.default = { lib, config, pkgs, ... }:
