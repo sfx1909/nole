@@ -1,0 +1,49 @@
+[[rules]]
+id = "obs-studio"
+name = "OBS Studio"
+description = "OBS requires high inotify limits, file descriptor limits, and real-time scheduling for stable recording"
+[rules.detect]
+  packages = ["obs-studio"]
+[rules.suggest]
+  "boot.kernel.sysctl.\"fs.inotify.max_user_watches\"" = "524288"
+  "boot.kernel.sysctl.\"fs.inotify.max_user_instances\"" = "512"
+  "security.rtkit.enable" = "true"
+  "security.pam.loginLimits" = """[
+    { domain = "*"; type = "-"; item = "nofile"; value = "65536"; }
+  ]"""
+
+[[rules]]
+id = "gaming"
+name = "Gaming"
+description = "Games require higher virtual memory map counts"
+[rules.detect]
+  packages = ["steam", "lutris", "heroic", "bottles"]
+[rules.suggest]
+  "boot.kernel.sysctl.\"vm.max_map_count\"" = "2147483642"
+
+[[rules]]
+id = "cosmic"
+name = "COSMIC Desktop"
+description = "COSMIC/WGPU may hang on Vulkan device enumeration with some AMD cards"
+[rules.detect]
+  packages = ["cosmic-comp", "cosmic-session"]
+[rules.suggest]
+  "environment.sessionVariables.WGPU_BACKEND" = "\"gl\""
+
+[[rules]]
+id = "docker"
+name = "Docker"
+description = "Docker benefits from increased inotify instances"
+[rules.detect]
+  packages = ["docker", "podman"]
+[rules.suggest]
+  "boot.kernel.sysctl.\"fs.inotify.max_user_instances\"" = "512"
+
+[[rules]]
+id = "pipewire"
+name = "PipeWire Audio"
+description = "PipeWire requires real-time scheduling for low latency audio"
+[rules.detect]
+  packages = ["pipewire", "wireplumber"]
+[rules.suggest]
+  "security.rtkit.enable" = "true"

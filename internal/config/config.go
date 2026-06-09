@@ -1,0 +1,42 @@
+package config
+
+import (
+	"os"
+	"path/filepath"
+
+	"github.com/BurntSushi/toml"
+)
+
+type Config struct {
+	Flake string `toml:"flake"`
+}
+
+func Load() (*Config, error) {
+	cfg := &Config{}
+	for _, path := range configPaths() {
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			continue
+		}
+		if _, err := toml.DecodeFile(path, cfg); err != nil {
+			return nil, err
+		}
+		return cfg, nil
+	}
+	return cfg, nil
+}
+
+// configPaths returns candidate config file locations in priority order.
+// User config takes precedence over system config.
+func configPaths() []string {
+	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
+		return []string{
+			filepath.Join(xdg, "nole", "config.toml"),
+			"/etc/nole/config.toml",
+		}
+	}
+	home, _ := os.UserHomeDir()
+	return []string{
+		filepath.Join(home, ".config", "nole", "config.toml"),
+		"/etc/nole/config.toml",
+	}
+}
