@@ -46,7 +46,7 @@ func Run(apply bool, format Format) error {
 		return nil
 	}
 
-	printMatches(matches)
+	fmt.Printf("  %s  %s available\n\n", style.Cyan.Render(""), plural(len(matches), "optimisation"))
 
 	if apply {
 		if err := writeModules(matches, ctx.FlakePath, format); err != nil {
@@ -158,25 +158,11 @@ func match(rules []Rule, packages []string) []Match {
 	return matches
 }
 
-func printMatches(matches []Match) {
-	fmt.Println(style.Bold.Render("  Optimisations"))
-	for _, m := range matches {
-		fmt.Printf("  %s  %s\n", style.Cyan.Render(""), m.Rule.Name)
-		fmt.Printf("      %s\n", style.Faint.Render(m.Rule.Description))
-		for k, v := range m.Suggestions {
-			v = strings.TrimSpace(v)
-			if strings.Contains(v, "\n") {
-				lines := strings.Split(v, "\n")
-				fmt.Printf("      %s %s = %s\n", style.Faint.Render("·"), style.Yellow.Render(k), lines[0])
-				for _, line := range lines[1:] {
-					fmt.Printf("               %s\n", style.Faint.Render(line))
-				}
-			} else {
-				fmt.Printf("      %s %s = %s\n", style.Faint.Render("·"), style.Yellow.Render(k), style.Faint.Render(v))
-			}
-		}
-		fmt.Println()
+func plural(n int, word string) string {
+	if n == 1 {
+		return fmt.Sprintf("1 %s", word)
 	}
+	return fmt.Sprintf("%d %ss", n, word)
 }
 
 func writeModules(matches []Match, flakePath string, format Format) error {
