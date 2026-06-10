@@ -16,7 +16,7 @@
       pname = "nole";
       inherit version;
       src = ./.;
-      vendorHash = "sha256-Gzufb1Z01AQg9IHD9vga/xPpuEL+E+kUublbBrWoMjo=";
+      vendorHash = "sha256-pyRB0jnn0CiXq2NSQhCLFa6dheLOlivV6hFYpY0h05k=";
       ldflags = [ "-X github.com/sfx1909/nole/cmd.version=${version}" ];
     };
 

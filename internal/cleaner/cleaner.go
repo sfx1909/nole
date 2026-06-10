@@ -5,9 +5,7 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
-	"time"
 
-	"github.com/briandowns/spinner"
 	"github.com/sfx1909/nole/internal/builder"
 	"github.com/sfx1909/nole/internal/git"
 	"github.com/sfx1909/nole/internal/oplog"
@@ -85,12 +83,12 @@ func PreviewDead() (int, error) {
 }
 
 func collectGarbage() (string, error) {
-	s := spinner.New(spinner.CharSets[14], 80*time.Millisecond)
-	s.Suffix = style.Faint.Render("  Collecting garbage")
-	s.Start()
-
-	out, err := exec.Command("sudo", "nix-collect-garbage", "-d").CombinedOutput()
-	s.Stop()
+	var out []byte
+	err := style.Spin("  Collecting garbage", func() error {
+		var cmdErr error
+		out, cmdErr = exec.Command("sudo", "nix-collect-garbage", "-d").CombinedOutput()
+		return cmdErr
+	})
 	if err != nil {
 		return "", fmt.Errorf("nix-collect-garbage failed: %s", strings.TrimSpace(string(out)))
 	}
@@ -102,12 +100,12 @@ func collectGarbage() (string, error) {
 }
 
 func optimiseStore() error {
-	s := spinner.New(spinner.CharSets[14], 80*time.Millisecond)
-	s.Suffix = style.Faint.Render("  Optimising store")
-	s.Start()
-
-	out, err := exec.Command("sudo", "nix", "store", "optimise").CombinedOutput()
-	s.Stop()
+	var out []byte
+	err := style.Spin("  Optimising store", func() error {
+		var cmdErr error
+		out, cmdErr = exec.Command("sudo", "nix", "store", "optimise").CombinedOutput()
+		return cmdErr
+	})
 	if err != nil {
 		return fmt.Errorf("nix store optimise failed: %s", strings.TrimSpace(string(out)))
 	}

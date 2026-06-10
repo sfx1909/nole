@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/charmbracelet/huh"
+	"github.com/charmbracelet/huh/spinner"
 	"github.com/charmbracelet/lipgloss"
 	"golang.org/x/term"
 )
@@ -74,6 +75,25 @@ func IsTerminal() bool {
 // terminal.
 func RunForm(form *huh.Form) error {
 	return form.WithTheme(Theme()).WithAccessible(!IsTerminal()).Run()
+}
+
+// Spin runs action while showing a themed spinner with the given title
+// (e.g. "  Evaluating config"). Falls back to a static line when stdout
+// isn't a terminal.
+func Spin(title string, action func() error) error {
+	var actionErr error
+	s := spinner.New().
+		Title(title).
+		TitleStyle(Faint).
+		Style(Cyan).
+		Accessible(!IsTerminal()).
+		Action(func() {
+			actionErr = action()
+		})
+	if err := s.Run(); err != nil {
+		return err
+	}
+	return actionErr
 }
 
 // Confirm prompts the user with a themed y/N question and returns true for

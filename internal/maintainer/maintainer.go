@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
-	"time"
 
-	"github.com/briandowns/spinner"
 	"github.com/sfx1909/nole/internal/builder"
 	"github.com/sfx1909/nole/internal/cleaner"
 	"github.com/sfx1909/nole/internal/flake"
@@ -69,14 +67,12 @@ func Run(clean bool) error {
 }
 
 func updateFlake(flakePath string) error {
-	s := spinner.New(spinner.CharSets[14], 80*time.Millisecond)
-	s.Suffix = style.Faint.Render("  Updating flake inputs")
-	s.Start()
-
-	cmd := exec.Command("nix", "flake", "update", "--flake", flakePath)
-	out, err := cmd.CombinedOutput()
-	s.Stop()
-
+	var out []byte
+	err := style.Spin("  Updating flake inputs", func() error {
+		var cmdErr error
+		out, cmdErr = exec.Command("nix", "flake", "update", "--flake", flakePath).CombinedOutput()
+		return cmdErr
+	})
 	if err != nil {
 		return fmt.Errorf("flake update failed: %s", strings.TrimSpace(string(out)))
 	}
@@ -86,13 +82,12 @@ func updateFlake(flakePath string) error {
 }
 
 func rebuildNeeded(ctx *flake.Context) (bool, string, error) {
-	s := spinner.New(spinner.CharSets[14], 80*time.Millisecond)
-	s.Suffix = style.Faint.Render("  Checking for changes")
-	s.Start()
-
-	// compare derivation paths — evaluation only, no building
-	newDrv, err := newSystemDrv(ctx)
-	s.Stop()
+	var newDrv string
+	err := style.Spin("  Checking for changes", func() error {
+		var evalErr error
+		newDrv, evalErr = newSystemDrv(ctx)
+		return evalErr
+	})
 	if err != nil {
 		return false, "", err
 	}

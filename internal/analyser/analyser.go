@@ -7,9 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 
-	"github.com/briandowns/spinner"
 	"github.com/charmbracelet/huh"
 	"github.com/sfx1909/nole/internal/flake"
 	"github.com/sfx1909/nole/internal/style"
@@ -31,13 +29,12 @@ func Run(apply bool, format Format) error {
 		return fmt.Errorf("failed to load rules: %w", err)
 	}
 
-	s := spinner.New(spinner.CharSets[14], 80*time.Millisecond)
-	s.Suffix = style.Faint.Render("  Evaluating config")
-	s.Start()
-
-	packages, err := evalPackages(ctx)
-	s.Stop()
-	if err != nil {
+	var packages []string
+	if err := style.Spin("  Evaluating config", func() error {
+		var evalErr error
+		packages, evalErr = evalPackages(ctx)
+		return evalErr
+	}); err != nil {
 		return fmt.Errorf("failed to evaluate packages: %w", err)
 	}
 

@@ -8,9 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"sync"
-	"time"
 
-	"github.com/briandowns/spinner"
 	"github.com/sfx1909/nole/internal/flake"
 	"github.com/sfx1909/nole/internal/git"
 	"github.com/sfx1909/nole/internal/output"
@@ -41,48 +39,46 @@ func RunWithContext(ctx *flake.Context) error {
 		defer exec.Command("sudo", "-k").Run()
 	}
 
-	s := spinner.New(spinner.CharSets[14], 80*time.Millisecond)
-	s.Suffix = style.Faint.Render(fmt.Sprintf("  Building NixOS (%s#%s)", ctx.FlakePath, ctx.ConfigName))
-	s.Start()
-
-	cmd := exec.Command("sudo", "nixos-rebuild", "switch", "--flake", fmt.Sprintf("%s#%s", ctx.FlakePath, ctx.ConfigName))
-
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return err
-	}
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		return err
-	}
-
-	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start nixos-rebuild: %w", err)
-	}
-
 	summary := output.NewSummary()
-	var wg sync.WaitGroup
+	title := fmt.Sprintf("  Building NixOS (%s#%s)", ctx.FlakePath, ctx.ConfigName)
+	buildErr := style.Spin(title, func() error {
+		cmd := exec.Command("sudo", "nixos-rebuild", "switch", "--flake", fmt.Sprintf("%s#%s", ctx.FlakePath, ctx.ConfigName))
 
-	scanPipe := func(r io.Reader) {
-		defer wg.Done()
-		scanner := bufio.NewScanner(r)
-		for scanner.Scan() {
-			summary.Parse(scanner.Text())
+		stdout, err := cmd.StdoutPipe()
+		if err != nil {
+			return err
 		}
-	}
+		stderr, err := cmd.StderrPipe()
+		if err != nil {
+			return err
+		}
 
-	wg.Add(2)
-	go scanPipe(stdout)
-	go scanPipe(stderr)
-	wg.Wait()
+		if err := cmd.Start(); err != nil {
+			return fmt.Errorf("failed to start nixos-rebuild: %w", err)
+		}
 
-	s.Stop()
+		var wg sync.WaitGroup
+		scanPipe := func(r io.Reader) {
+			defer wg.Done()
+			scanner := bufio.NewScanner(r)
+			for scanner.Scan() {
+				summary.Parse(scanner.Text())
+			}
+		}
 
-	if err := cmd.Wait(); err != nil {
+		wg.Add(2)
+		go scanPipe(stdout)
+		go scanPipe(stderr)
+		wg.Wait()
+
+		return cmd.Wait()
+	})
+
+	if buildErr != nil {
 		fmt.Println(style.Red.Render("  Build failed"))
 		summary.Print()
 		summary.PrintLog()
-		return err
+		return buildErr
 	}
 
 	fmt.Println(style.Green.Render("  󰄬  Build successful"))
