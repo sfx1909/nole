@@ -27,7 +27,11 @@ Detects installed packages and suggests NixOS optimisations.
 
 - Evaluates your system packages
 - Matches against known optimisation rules (OBS, gaming, COSMIC, PipeWire, Docker)
-- Run with `--apply` to generate ready-to-import NixOS modules under `./nole/optimizations/`
+- If any are found, asks whether to generate NixOS modules and lets you pick which ones
+  via a checkbox list (defaults to all selected), generating ready-to-import modules
+  under `./nole/optimizations/`
+- Run with `--apply` to generate modules for everything detected without prompting
+  (useful for scripts/CI)
 
 ### `nole status`
 Quick read-only dashboard of system and flake state.
@@ -93,6 +97,8 @@ Config is loaded in priority order:
 
 ```toml
 flake = "/home/you/nixos-config"
+
+[analyse]
 format = "module"
 
 [maintain]
@@ -107,7 +113,7 @@ clean = true
   its parents for a `flake.nix` exposing `nixosConfigurations`. Can also be set
   per-invocation via the `NOLE_FLAKE` environment variable (`NOLE_FLAKE=/path/to/flake#hostname`),
   which takes priority over both the config file and auto-discovery.
-- `format` — default `--format` for `nole analyse --apply` (`module`, `flake-part`, or `flake`).
+- `analyse.format` — default `--format` for `nole analyse` (`module`, `flake-part`, or `flake`).
 - `maintain.clean` — if `true`, `nole maintain` always behaves as if `--clean` was passed
   (garbage-collect old generations and optimise the store after a successful run). Override
   per-invocation with `--clean`/`--no-clean`.

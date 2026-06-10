@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
+	"github.com/charmbracelet/huh"
 	"github.com/fatih/color"
 	"github.com/sfx1909/nole/internal/flake"
 )
@@ -50,19 +51,81 @@ func Run(apply bool, format Format) error {
 
 	printMatches(matches)
 
-	if !apply {
-		fmt.Printf("  %s Run with %s to generate modules\n\n",
+	if apply {
+		if err := writeModules(matches, ctx.FlakePath, format); err != nil {
+			return fmt.Errorf("failed to write optimisation modules: %w", err)
+		}
+		return nil
+	}
+
+	proceed, selected, err := selectMatches(matches)
+	if err != nil {
+		return fmt.Errorf("failed to read selection: %w", err)
+	}
+
+	if !proceed {
+		fmt.Printf("  %s Run with %s to apply all without prompting\n\n",
 			color.New(color.Faint).Sprint("→"),
 			color.CyanString("--apply"),
 		)
 		return nil
 	}
 
-	if err := writeModules(matches, ctx.FlakePath, format); err != nil {
+	if len(selected) == 0 {
+		fmt.Println(color.New(color.Faint).Sprint("  Nothing selected"))
+		fmt.Println()
+		return nil
+	}
+
+	if err := writeModules(selected, ctx.FlakePath, format); err != nil {
 		return fmt.Errorf("failed to write optimisation modules: %w", err)
 	}
 
 	return nil
+}
+
+// selectMatches prompts the user, via a single themed huh form, whether to
+// generate NixOS modules and (if so) which detected optimisations to include
+// via a checkbox list (all selected by default).
+func selectMatches(matches []Match) (proceed bool, selected []Match, err error) {
+	proceed = true
+
+	options := make([]huh.Option[int], len(matches))
+	picked := make([]int, len(matches))
+	for i, m := range matches {
+		options[i] = huh.NewOption(fmt.Sprintf("%s — %s", m.Rule.Name, m.Rule.Description), i)
+		picked[i] = i
+	}
+
+	form := huh.NewForm(
+		huh.NewGroup(
+			huh.NewConfirm().
+				Title("Generate NixOS modules for these optimisations?").
+				Affirmative("Yes").
+				Negative("No").
+				Value(&proceed),
+		),
+		huh.NewGroup(
+			huh.NewMultiSelect[int]().
+				Title("Select optimisations to generate").
+				Options(options...).
+				Value(&picked),
+		).WithHideFunc(func() bool { return !proceed }),
+	).WithTheme(huh.ThemeCharm())
+
+	if err := form.Run(); err != nil {
+		return false, nil, err
+	}
+
+	if !proceed {
+		return false, nil, nil
+	}
+
+	selected = make([]Match, 0, len(picked))
+	for _, i := range picked {
+		selected = append(selected, matches[i])
+	}
+	return true, selected, nil
 }
 
 func evalPackages(ctx *flake.Context) ([]string, error) {

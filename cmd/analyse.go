@@ -18,7 +18,7 @@ var analyseCmd = &cobra.Command{
 		formatStr := formatFlag
 		if formatStr == "" {
 			if cfg, err := config.Load(); err == nil {
-				formatStr = cfg.Format
+				formatStr = cfg.Analyse.Format
 			}
 		}
 
@@ -32,7 +32,7 @@ var analyseCmd = &cobra.Command{
 }
 
 func init() {
-	analyseCmd.Flags().BoolVarP(&applyFlag, "apply", "a", false, "Generate optimisation modules")
+	analyseCmd.Flags().BoolVarP(&applyFlag, "apply", "a", false, "Generate modules for all detected optimisations without prompting")
 	analyseCmd.Flags().StringVarP(&formatFlag, "format", "f", "", "Output format: module (default), flake-part, or flake")
 	rootCmd.AddCommand(analyseCmd)
 }

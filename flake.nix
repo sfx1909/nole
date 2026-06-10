@@ -16,7 +16,7 @@
       pname = "nole";
       inherit version;
       src = ./.;
-      vendorHash = "sha256-e51nbkepzKB4mXwq+bXGHIElQgGoEqJ63x7d6tbLpFE=";
+      vendorHash = "sha256-Gzufb1Z01AQg9IHD9vga/xPpuEL+E+kUublbBrWoMjo=";
       ldflags = [ "-X github.com/sfx1909/nole/cmd.version=${version}" ];
     };
 
@@ -37,10 +37,10 @@
           '';
         };
 
-        format = lib.mkOption {
+        analyse.format = lib.mkOption {
           type = lib.types.enum [ "module" "flake-part" "flake" ];
           default = "module";
-          description = "Default output format for `nole analyse --apply`.";
+          description = "Default output format for `nole analyse`.";
         };
 
         maintain.clean = lib.mkOption {
@@ -58,7 +58,7 @@
         environment.systemPackages = [ self.packages.${pkgs.system}.default ];
         environment.etc."nole/config.toml".source = (pkgs.formats.toml { }).generate "nole-config.toml" {
           flake = cfg.flakePath;
-          format = cfg.format;
+          analyse.format = cfg.analyse.format;
           maintain.clean = cfg.maintain.clean;
         };
       };
