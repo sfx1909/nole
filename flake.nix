@@ -9,13 +9,15 @@
   let
     system = "x86_64-linux";
     pkgs = nixpkgs.legacyPackages.${system};
+    version = "0.2.0";
   in
   {
     packages.${system}.default = pkgs.buildGoModule {
       pname = "nole";
-      version = "0.1.0";
+      inherit version;
       src = ./.;
       vendorHash = "sha256-e51nbkepzKB4mXwq+bXGHIElQgGoEqJ63x7d6tbLpFE=";
+      ldflags = [ "-X github.com/sfx1909/nole/cmd.version=${version}" ];
     };
 
     nixosModules.default = { lib, config, pkgs, ... }:
@@ -24,17 +26,41 @@
     in {
       options.programs.nole = {
         enable = lib.mkEnableOption "nole NixOS manager";
+
         flakePath = lib.mkOption {
           type = lib.types.str;
-          description = "Absolute path to your NixOS flake";
+          description = ''
+            Path to your NixOS flake, optionally suffixed with
+            "#<configuration>" to pin the nixosConfigurations attribute
+            (e.g. "/home/you/nixos-config#hostname"). If omitted, nole
+            resolves the configuration automatically.
+          '';
+        };
+
+        format = lib.mkOption {
+          type = lib.types.enum [ "module" "flake-part" "flake" ];
+          default = "module";
+          description = "Default output format for `nole analyse --apply`.";
+        };
+
+        maintain.clean = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = ''
+            Whether `nole maintain` should also garbage-collect old
+            generations and optimise the Nix store by default
+            (equivalent to always passing --clean).
+          '';
         };
       };
 
       config = lib.mkIf cfg.enable {
         environment.systemPackages = [ self.packages.${pkgs.system}.default ];
-        environment.etc."nole/config.toml".text = ''
-          flake = "${cfg.flakePath}"
-        '';
+        environment.etc."nole/config.toml".source = (pkgs.formats.toml { }).generate "nole-config.toml" {
+          flake = cfg.flakePath;
+          format = cfg.format;
+          maintain.clean = cfg.maintain.clean;
+        };
       };
     };
 
