@@ -1,15 +1,25 @@
 package cmd
 
 import (
+	_ "embed"
+	"fmt"
 	"os"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
+
+//go:embed title.txt
+var titleArt string
 
 var rootCmd = &cobra.Command{
 	Use:   "nole",
 	Short: "NixOS configuration manager and optimiser",
 	Long:  "Nole is a smart NixOS rebuild wrapper that summarises warnings, deprecations, and suggests optimisations based on your config.",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println(color.CyanString(titleArt))
+		cmd.Help()
+	},
 }
 
 func Execute() {
