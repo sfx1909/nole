@@ -21,14 +21,18 @@ var systemNameRe = regexp.MustCompile(`nixos-system-(.+?)-\d+\.\d+`)
 
 // Detect finds the nearest flake.nix and the current NixOS config name.
 func Detect() (*Context, error) {
-	flakePath, err := findFlake()
+	spec, err := findFlake()
 	if err != nil {
 		return nil, err
 	}
 
-	configName, err := resolveConfigName(flakePath)
-	if err != nil {
-		return nil, err
+	flakePath, configName, _ := strings.Cut(spec, "#")
+
+	if configName == "" {
+		configName, err = resolveConfigName(flakePath)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &Context{

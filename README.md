@@ -93,6 +93,21 @@ Config is loaded in priority order:
 
 ```toml
 flake = "/home/you/nixos-config"
+format = "module"
+
+[maintain]
+clean = true
 ```
 
-The flake path can also be set per-invocation via the `NOLE_FLAKE` environment variable.
+- `flake` — path to your flake, optionally with `#<configuration>` to pin which
+  `nixosConfigurations` entry to use (e.g. `/home/you/nixos-config#hostname`). If the
+  `#<configuration>` suffix is omitted, `nole` resolves it automatically (matching the
+  hostname, then the running system's config name, erroring if multiple configs match
+  none of those). If `flake` is unset entirely, `nole` searches the current directory and
+  its parents for a `flake.nix` exposing `nixosConfigurations`. Can also be set
+  per-invocation via the `NOLE_FLAKE` environment variable (`NOLE_FLAKE=/path/to/flake#hostname`),
+  which takes priority over both the config file and auto-discovery.
+- `format` — default `--format` for `nole analyse --apply` (`module`, `flake-part`, or `flake`).
+- `maintain.clean` — if `true`, `nole maintain` always behaves as if `--clean` was passed
+  (garbage-collect old generations and optimise the store after a successful run). Override
+  per-invocation with `--clean`/`--no-clean`.
