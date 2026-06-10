@@ -19,7 +19,7 @@ var freedRe = regexp.MustCompile(`freeing ([\d.]+\s*\w+)`)
 // Run garbage-collects old generations and optimises the Nix store.
 // Without apply, it only previews how many store paths are garbage.
 func Run(apply bool) error {
-	dead, err := previewDead()
+	dead, err := PreviewDead()
 	if err != nil {
 		fmt.Printf("  %s could not check for garbage: %v\n\n", color.New(color.Faint).Sprint(""), err)
 	} else if dead == 0 {
@@ -66,9 +66,10 @@ func Run(apply bool) error {
 	})
 }
 
-// previewDead returns the number of store paths reachable for garbage
-// collection, without deleting anything.
-func previewDead() (int, error) {
+// PreviewDead returns the number of store paths reachable for garbage
+// collection, without deleting anything. The error is non-nil if the
+// check itself failed (e.g. nix-store not available).
+func PreviewDead() (int, error) {
 	out, err := exec.Command("nix-store", "--gc", "--print-dead").Output()
 	if err != nil {
 		return 0, err

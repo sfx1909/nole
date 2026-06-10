@@ -9,11 +9,14 @@ import (
 	"github.com/briandowns/spinner"
 	"github.com/fatih/color"
 	"github.com/sfx1909/nole/internal/builder"
+	"github.com/sfx1909/nole/internal/cleaner"
 	"github.com/sfx1909/nole/internal/flake"
 	"github.com/sfx1909/nole/internal/git"
 )
 
-func Run() error {
+// Run updates flake inputs and rebuilds if needed. If clean is true, it also
+// runs garbage collection and store optimisation afterwards (nole clean --apply).
+func Run(clean bool) error {
 	ctx, err := flake.Detect()
 	if err != nil {
 		return err
@@ -32,27 +35,37 @@ func Run() error {
 		return err
 	}
 
+	var buildErr error
 	if !needed {
 		fmt.Println(color.GreenString("  󰄬  System is up to date"))
 		fmt.Println()
 		if err := git.PromptStageAndCommit(ctx.FlakePath); err != nil {
 			return err
 		}
-		printTips(ctx)
-		return nil
+	} else {
+		// sudo only needed for the actual rebuild
+		notify("Nole requires sudo to apply NixOS changes")
+		if err := builder.EnsureSudo(); err != nil {
+			return err
+		}
+		defer exec.Command("sudo", "-k").Run()
+
+		printDiff(diff)
+		buildErr = builder.RunWithContext(ctx)
 	}
 
-	// sudo only needed for the actual rebuild
-	notify("Nole requires sudo to apply NixOS changes")
-	if err := builder.EnsureSudo(); err != nil {
-		return err
-	}
-	defer exec.Command("sudo", "-k").Run()
+	printTips(ctx, clean)
 
-	printDiff(diff)
-	err = builder.RunWithContext(ctx)
-	printTips(ctx)
-	return err
+	if buildErr != nil {
+		return buildErr
+	}
+
+	if clean {
+		fmt.Println()
+		return cleaner.Run(true)
+	}
+
+	return nil
 }
 
 func updateFlake(flakePath string) error {
@@ -146,11 +159,17 @@ func printDiff(diff string) {
 	fmt.Println()
 }
 
-func printTips(ctx *flake.Context) {
+func printTips(ctx *flake.Context, clean bool) {
 	var tips []string
 
 	if git.IsDirty(ctx.FlakePath) {
 		tips = append(tips, "Your config has uncommitted changes — consider running "+color.CyanString("git commit")+" to keep your history clean")
+	}
+
+	if !clean {
+		if dead, err := cleaner.PreviewDead(); err == nil && dead > 0 {
+			tips = append(tips, fmt.Sprintf("%d store paths are garbage — run %s to reclaim space", dead, color.CyanString("nole clean --apply")))
+		}
 	}
 
 	if len(tips) == 0 {

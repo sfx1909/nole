@@ -16,7 +16,7 @@ A NixOS configuration manager, modeled as the NixOS counterpart to
 | `mo installer` | — | N/A | NixOS systems are installed via the NixOS installer/ISO + flake deploy; `nole` operates on an already-installed system |
 | `mo touchid` | — | N/A | Touch ID is a macOS/Apple Silicon sudo-auth feature; `nole` already prompts for the sudo password directly (`builder.EnsureSudo`) |
 | `mo completion` | `nole completion` | Done | Provided automatically by Cobra: `nole completion bash\|zsh\|fish\|powershell` |
-| `mo update` | `nole maintain` | Done | Updates flake inputs and rebuilds only if the resulting system actually changes |
+| `mo update` | `nole maintain` | Done | Updates flake inputs and rebuilds only if the resulting system actually changes; `--clean` also runs garbage collection/store optimisation afterwards, and a tip is shown when garbage has piled up |
 | `mo history` | `nole history` | Done | Reads the JSON-lines operations log written by `clean --apply` / `purge --apply` |
 | global `--dry-run` | per-command `--apply` | Done (pattern) | Matches the existing `analyse --apply` convention: commands preview by default, `--apply`/`-a` executes. No global flag |
 | global `--json` | — | Future | Would need structured output per command |

@@ -19,6 +19,8 @@ Updates flake inputs and rebuilds only if needed.
 - Compares derivation paths to detect if a rebuild is actually needed
 - Skips the rebuild if the system is already up to date
 - Prompts to stage and commit any changed `.nix` files
+- Tips you to run `nole clean` if old generations/store paths have piled up
+- Run with `--clean` to also garbage-collect old generations and optimise the store afterwards
 
 ### `nole analyse`
 Detects installed packages and suggests NixOS optimisations.
