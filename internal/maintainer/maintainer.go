@@ -115,12 +115,6 @@ func currentSystemDrv() (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-func isGitDirty(path string) bool {
-	cmd := exec.Command("git", "-C", path, "status", "--porcelain")
-	out, err := cmd.Output()
-	return err == nil && len(strings.TrimSpace(string(out))) > 0
-}
-
 func storeDiff(ctx *flake.Context) (string, error) {
 	buildCmd := exec.Command("nix", "build", "--no-link", "--print-out-paths",
 		fmt.Sprintf("%s#nixosConfigurations.%s.config.system.build.toplevel", ctx.FlakePath, ctx.ConfigName),
@@ -155,7 +149,7 @@ func printDiff(diff string) {
 func printTips(ctx *flake.Context) {
 	var tips []string
 
-	if isGitDirty(ctx.FlakePath) {
+	if git.IsDirty(ctx.FlakePath) {
 		tips = append(tips, "Your config has uncommitted changes — consider running "+color.CyanString("git commit")+" to keep your history clean")
 	}
 

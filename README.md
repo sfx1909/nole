@@ -27,6 +27,35 @@ Detects installed packages and suggests NixOS optimisations.
 - Matches against known optimisation rules (OBS, gaming, COSMIC, PipeWire, Docker)
 - Run with `--apply` to generate ready-to-import NixOS modules under `./nole/optimizations/`
 
+### `nole status`
+Quick read-only dashboard of system and flake state.
+
+- Current and total NixOS generations
+- `/nix/store` disk usage
+- Whether the flake repo has uncommitted changes
+- Age of `flake.lock`
+
+### `nole clean`
+Garbage-collects old generations and optimises the Nix store.
+
+- Previews how many store paths are eligible for collection
+- Run with `--apply` to run `nix-collect-garbage -d` and `nix store optimise` (requires sudo)
+- Records the freed space in `nole history`
+
+### `nole purge [path]`
+Finds and removes common dev build artifacts.
+
+- Looks for `node_modules`, `target`, `dist`, `build`, `.direnv`, `__pycache__`, `.venv`,
+  and nix `result`/`result-*` build symlinks (defaults to the current flake's path)
+- Run with `--apply` to delete them
+- Records what was removed in `nole history`
+
+### `nole history`
+Shows recent operations recorded by `clean --apply` and `purge --apply`.
+
+### `nole completion`
+Generates shell completion scripts (`bash`, `zsh`, `fish`, `powershell`), provided by Cobra.
+
 ## Installation
 
 Add nole to your NixOS flake:

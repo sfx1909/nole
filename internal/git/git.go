@@ -42,7 +42,6 @@ func UntrackedNixFiles(repoPath string) ([]string, error) {
 	return files, nil
 }
 
-
 // PromptStageAndCommit finds all changed .nix files post-build, offers to stage
 // any unstaged ones, then prompts to commit if there is anything staged.
 func PromptStageAndCommit(repoPath string) error {
@@ -165,11 +164,29 @@ func PromptStage(repoPath string, files []string) error {
 	return nil
 }
 
-
 func confirm(prompt string) bool {
 	fmt.Printf("%s [y/N] ", color.CyanString(prompt))
 	input, _ := readLine()
 	return strings.ToLower(strings.TrimSpace(input)) == "y"
+}
+
+// Confirm prompts the user with a y/N question and returns true for "y"/"Y".
+func Confirm(prompt string) bool {
+	return confirm(prompt)
+}
+
+// IsDirty reports whether the git repo at path has any uncommitted changes.
+func IsDirty(path string) bool {
+	lines, err := porcelain(path)
+	if err != nil {
+		return false
+	}
+	for _, line := range lines {
+		if strings.TrimSpace(line) != "" {
+			return true
+		}
+	}
+	return false
 }
 
 var stdinReader = bufio.NewReader(os.Stdin)
