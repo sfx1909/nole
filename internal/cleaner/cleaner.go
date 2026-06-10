@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
-	"github.com/fatih/color"
 	"github.com/sfx1909/nole/internal/builder"
 	"github.com/sfx1909/nole/internal/git"
 	"github.com/sfx1909/nole/internal/oplog"
+	"github.com/sfx1909/nole/internal/style"
 )
 
 var freedRe = regexp.MustCompile(`freeing ([\d.]+\s*\w+)`)
@@ -21,20 +21,20 @@ var freedRe = regexp.MustCompile(`freeing ([\d.]+\s*\w+)`)
 func Run(apply bool) error {
 	dead, err := PreviewDead()
 	if err != nil {
-		fmt.Printf("  %s could not check for garbage: %v\n\n", color.New(color.Faint).Sprint(""), err)
+		fmt.Printf("  %s could not check for garbage: %v\n\n", style.Faint.Render(""), err)
 	} else if dead == 0 {
-		fmt.Println(color.GreenString("  󰄬  Nothing to clean"))
+		fmt.Println(style.Green.Render("  󰄬  Nothing to clean"))
 		fmt.Println()
 		return nil
 	} else {
-		fmt.Printf("  %s  %s ready to be collected\n", color.CyanString(""), plural(dead, "store path"))
-		fmt.Printf("  %s %s\n", color.New(color.Faint).Sprint("→"), color.New(color.Faint).Sprint("run as root for a complete picture across all profiles"))
+		fmt.Printf("  %s  %s ready to be collected\n", style.Cyan.Render(""), plural(dead, "store path"))
+		fmt.Printf("  %s %s\n", style.Faint.Render("→"), style.Faint.Render("run as root for a complete picture across all profiles"))
 	}
 
 	if !apply {
 		fmt.Printf("  %s Run with %s to remove old generations and optimise the store\n\n",
-			color.New(color.Faint).Sprint("→"),
-			color.CyanString("--apply"),
+			style.Faint.Render("→"),
+			style.Cyan.Render("--apply"),
 		)
 		return nil
 	}
@@ -52,12 +52,12 @@ func Run(apply bool) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("  %s  Garbage collected, freeing %s\n", color.GreenString("󰄬"), freed)
+	fmt.Printf("  %s  Garbage collected, freeing %s\n", style.Green.Render("󰄬"), freed)
 
 	if err := optimiseStore(); err != nil {
 		return err
 	}
-	fmt.Printf("  %s  Store optimised\n\n", color.GreenString("󰄬"))
+	fmt.Printf("  %s  Store optimised\n\n", style.Green.Render("󰄬"))
 
 	return oplog.Append(oplog.Entry{
 		Action:  "clean",
@@ -86,7 +86,7 @@ func PreviewDead() (int, error) {
 
 func collectGarbage() (string, error) {
 	s := spinner.New(spinner.CharSets[14], 80*time.Millisecond)
-	s.Suffix = color.New(color.Faint).Sprint("  Collecting garbage")
+	s.Suffix = style.Faint.Render("  Collecting garbage")
 	s.Start()
 
 	out, err := exec.Command("sudo", "nix-collect-garbage", "-d").CombinedOutput()
@@ -103,7 +103,7 @@ func collectGarbage() (string, error) {
 
 func optimiseStore() error {
 	s := spinner.New(spinner.CharSets[14], 80*time.Millisecond)
-	s.Suffix = color.New(color.Faint).Sprint("  Optimising store")
+	s.Suffix = style.Faint.Render("  Optimising store")
 	s.Start()
 
 	out, err := exec.Command("sudo", "nix", "store", "optimise").CombinedOutput()

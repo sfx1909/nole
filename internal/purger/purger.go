@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/fatih/color"
 	"github.com/sfx1909/nole/internal/flake"
 	"github.com/sfx1909/nole/internal/git"
 	"github.com/sfx1909/nole/internal/oplog"
 	"github.com/sfx1909/nole/internal/output"
+	"github.com/sfx1909/nole/internal/style"
 )
 
 // Finding is a directory or nix build symlink considered safe to remove.
@@ -35,7 +35,7 @@ func Run(root string, apply bool) error {
 	}
 
 	if len(findings) == 0 {
-		fmt.Println(color.GreenString("  󰄬  No build artifacts found"))
+		fmt.Println(style.Green.Render("  󰄬  No build artifacts found"))
 		fmt.Println()
 		return nil
 	}
@@ -45,8 +45,8 @@ func Run(root string, apply bool) error {
 
 	if !apply {
 		fmt.Printf("  %s Run with %s to remove these\n\n",
-			color.New(color.Faint).Sprint("→"),
-			color.CyanString("--apply"),
+			style.Faint.Render("→"),
+			style.Cyan.Render("--apply"),
 		)
 		return nil
 	}
@@ -63,7 +63,7 @@ func Run(root string, apply bool) error {
 	removed, freed := remove(findings)
 
 	fmt.Println()
-	fmt.Printf("  %s  Removed %s, freeing %s\n\n", color.GreenString("󰄬"), plural(removed, "item"), output.HumanBytes(freed))
+	fmt.Printf("  %s  Removed %s, freeing %s\n\n", style.Green.Render("󰄬"), plural(removed, "item"), output.HumanBytes(freed))
 
 	return oplog.Append(oplog.Entry{
 		Action:  "purge",
@@ -156,7 +156,7 @@ func remove(findings []Finding) (removed int, freed int64) {
 		}
 
 		if err != nil {
-			fmt.Printf("  %s failed to remove %s: %v\n", color.YellowString(""), f.Path, err)
+			fmt.Printf("  %s failed to remove %s: %v\n", style.Yellow.Render(""), f.Path, err)
 			continue
 		}
 
@@ -167,7 +167,7 @@ func remove(findings []Finding) (removed int, freed int64) {
 }
 
 func printFindings(root string, findings []Finding) {
-	fmt.Printf("  %s\n", color.New(color.Bold).Sprintf("Purge candidates (%s)", root))
+	fmt.Printf("  %s\n", style.Bold.Render(fmt.Sprintf("Purge candidates (%s)", root)))
 
 	var total int64
 	for _, f := range findings {
@@ -177,17 +177,17 @@ func printFindings(root string, findings []Finding) {
 		}
 
 		size := output.HumanBytes(f.Size)
-		icon := color.CyanString("󰉍")
+		icon := style.Cyan.Render("󰉍")
 		if f.IsSymlink {
 			size = "—"
-			icon = color.CyanString("󰜺")
+			icon = style.Cyan.Render("󰜺")
 		}
 
-		fmt.Printf("  %s  %-8s %s\n", icon, size, color.New(color.Faint).Sprint("./"+rel))
+		fmt.Printf("  %s  %-8s %s\n", icon, size, style.Faint.Render("./"+rel))
 		total += f.Size
 	}
 
-	fmt.Printf("  %s\n", color.New(color.Faint).Sprintf("Total: %s across %s", output.HumanBytes(total), plural(len(findings), "item")))
+	fmt.Printf("  %s\n", style.Faint.Render(fmt.Sprintf("Total: %s across %s", output.HumanBytes(total), plural(len(findings), "item"))))
 	fmt.Println()
 }
 

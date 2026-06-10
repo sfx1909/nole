@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/sfx1909/nole/internal/flake"
 	"github.com/sfx1909/nole/internal/git"
+	"github.com/sfx1909/nole/internal/style"
 )
 
 // staleLockAge is the threshold beyond which flake.lock is flagged as stale.
@@ -32,7 +32,7 @@ type diskUsage struct {
 
 // Run prints a quick, read-only dashboard of system and flake state.
 func Run() error {
-	fmt.Println(color.New(color.Bold).Sprint("  Status"))
+	fmt.Println(style.Bold.Render("  Status"))
 
 	printGenerations()
 	printDiskUsage()
@@ -45,7 +45,7 @@ func Run() error {
 func printGenerations() {
 	gens, err := collectGenerations()
 	if err != nil || len(gens) == 0 {
-		fmt.Printf("  %s %s\n", color.New(color.Faint).Sprint(""), color.New(color.Faint).Sprint("generations: unavailable"))
+		fmt.Printf("  %s %s\n", style.Faint.Render(""), style.Faint.Render("generations: unavailable"))
 		return
 	}
 
@@ -61,9 +61,9 @@ func printGenerations() {
 	}
 
 	if current != nil {
-		fmt.Printf("  %s  Generation %d (current, built %s)\n", color.CyanString(""), current.Generation, formatGenDate(current.Date))
+		fmt.Printf("  %s  Generation %d (current, built %s)\n", style.Cyan.Render(""), current.Generation, formatGenDate(current.Date))
 	}
-	fmt.Printf("  %s  %s (oldest: %s)\n", color.CyanString("󰓦"), plural(len(gens), "generation"), formatGenDate(oldest.Date))
+	fmt.Printf("  %s  %s (oldest: %s)\n", style.Cyan.Render("󰓦"), plural(len(gens), "generation"), formatGenDate(oldest.Date))
 }
 
 func collectGenerations() ([]generation, error) {
@@ -90,12 +90,12 @@ func formatGenDate(s string) string {
 func printDiskUsage() {
 	du, err := collectDiskUsage()
 	if err != nil {
-		fmt.Printf("  %s %s\n", color.New(color.Faint).Sprint(""), color.New(color.Faint).Sprint("/nix/store: unavailable"))
+		fmt.Printf("  %s %s\n", style.Faint.Render(""), style.Faint.Render("/nix/store: unavailable"))
 		return
 	}
 
 	fmt.Printf("  %s  /nix/store: %s used / %s (%s, %s free)\n",
-		color.CyanString("󰋊"), du.Used, du.Size, du.UsePercent, du.Avail)
+		style.Cyan.Render("󰋊"), du.Used, du.Size, du.UsePercent, du.Avail)
 }
 
 func collectDiskUsage() (diskUsage, error) {
@@ -125,16 +125,16 @@ func collectDiskUsage() (diskUsage, error) {
 func printFlakeStatus() {
 	ctx, err := flake.Detect()
 	if err != nil {
-		fmt.Printf("  %s %s\n", color.New(color.Faint).Sprint(""), color.New(color.Faint).Sprint("flake: not found"))
+		fmt.Printf("  %s %s\n", style.Faint.Render(""), style.Faint.Render("flake: not found"))
 		return
 	}
 
-	fmt.Printf("  %s  flake: %s#%s\n", color.CyanString("󱄅"), ctx.FlakePath, ctx.ConfigName)
+	fmt.Printf("  %s  flake: %s#%s\n", style.Cyan.Render("󱄅"), ctx.FlakePath, ctx.ConfigName)
 
 	if git.IsDirty(ctx.FlakePath) {
-		fmt.Printf("  %s  flake repo: uncommitted changes\n", color.YellowString(""))
+		fmt.Printf("  %s  flake repo: uncommitted changes\n", style.Yellow.Render(""))
 	} else {
-		fmt.Printf("  %s  flake repo: clean\n", color.CyanString("󰊢"))
+		fmt.Printf("  %s  flake repo: clean\n", style.Cyan.Render("󰊢"))
 	}
 
 	lockPath := filepath.Join(ctx.FlakePath, "flake.lock")
@@ -145,9 +145,9 @@ func printFlakeStatus() {
 
 	age := time.Since(info.ModTime())
 	if age > staleLockAge {
-		fmt.Printf("  %s  flake.lock: %s old (consider %s)\n", color.YellowString(""), formatAge(age), color.CyanString("nole maintain"))
+		fmt.Printf("  %s  flake.lock: %s old (consider %s)\n", style.Yellow.Render(""), formatAge(age), style.Cyan.Render("nole maintain"))
 	} else {
-		fmt.Printf("  %s  flake.lock: %s old\n", color.CyanString("󰚰"), formatAge(age))
+		fmt.Printf("  %s  flake.lock: %s old\n", style.Cyan.Render("󰚰"), formatAge(age))
 	}
 }
 

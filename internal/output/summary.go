@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fatih/color"
+	"github.com/sfx1909/nole/internal/style"
 )
 
 type Summary struct {
@@ -57,32 +57,32 @@ func (s *Summary) Parse(line string) {
 
 func (s *Summary) Print() {
 	fmt.Println()
-	fmt.Println(color.New(color.Bold).Sprint("  Summary"))
+	fmt.Println(style.Bold.Render("  Summary"))
 	if s.Built > 0 {
-		fmt.Printf("  %s  %s\n", color.CyanString("󰏗"), plural(s.Built, "built"))
+		fmt.Printf("  %s  %s\n", style.Cyan.Render("󰏗"), plural(s.Built, "built"))
 	} else {
-		fmt.Printf("  %s  all cached\n", color.New(color.Faint).Sprint(""))
+		fmt.Printf("  %s  all cached\n", style.Faint.Render(""))
 	}
 
 	if len(s.warnings) > 0 {
-		fmt.Printf("  %s  %s\n", color.YellowString(""), plural(len(s.warnCounts), "warning"))
+		fmt.Printf("  %s  %s\n", style.Yellow.Render(""), plural(len(s.warnCounts), "warning"))
 		for _, w := range s.warnings {
 			suffix := ""
 			if s.warnCounts[w] > 1 {
-				suffix = color.YellowString(fmt.Sprintf(" (x%d)", s.warnCounts[w]))
+				suffix = style.Yellow.Render(fmt.Sprintf(" (x%d)", s.warnCounts[w]))
 			}
-			fmt.Printf("      %s %s%s\n", color.YellowString("·"), color.New(color.Faint).Sprint(w), suffix)
+			fmt.Printf("      %s %s%s\n", style.Yellow.Render("·"), style.Faint.Render(w), suffix)
 		}
 	}
 
 	if len(s.deprecations) > 0 {
-		fmt.Printf("  %s  %s\n", color.MagentaString(""), plural(len(s.deprCounts), "deprecation"))
+		fmt.Printf("  %s  %s\n", style.Magenta.Render(""), plural(len(s.deprCounts), "deprecation"))
 		for _, d := range s.deprecations {
 			suffix := ""
 			if s.deprCounts[d] > 1 {
-				suffix = color.MagentaString(fmt.Sprintf(" (x%d)", s.deprCounts[d]))
+				suffix = style.Magenta.Render(fmt.Sprintf(" (x%d)", s.deprCounts[d]))
 			}
-			fmt.Printf("      %s %s%s\n", color.MagentaString("·"), color.New(color.Faint).Sprint(d), suffix)
+			fmt.Printf("      %s %s%s\n", style.Magenta.Render("·"), style.Faint.Render(d), suffix)
 		}
 	}
 
@@ -93,16 +93,16 @@ func (s *Summary) PrintLog() {
 	if len(s.lines) == 0 {
 		return
 	}
-	fmt.Println(color.New(color.Bold).Sprint("  Output"))
+	fmt.Println(style.Bold.Render("  Output"))
 	for _, line := range s.lines {
 		lower := strings.ToLower(line)
 		switch {
 		case strings.Contains(lower, "error:"):
-			fmt.Printf("  %s\n", color.RedString(line))
+			fmt.Printf("  %s\n", style.Red.Render(line))
 		case strings.Contains(lower, "warning:"):
-			fmt.Printf("  %s\n", color.YellowString(line))
+			fmt.Printf("  %s\n", style.Yellow.Render(line))
 		default:
-			fmt.Printf("  %s\n", color.New(color.Faint).Sprint(line))
+			fmt.Printf("  %s\n", style.Faint.Render(line))
 		}
 	}
 	fmt.Println()

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/fatih/color"
+	"github.com/sfx1909/nole/internal/style"
 	"github.com/spf13/cobra"
 )
 
@@ -21,7 +21,7 @@ var rootCmd = &cobra.Command{
 	Long:    "Nole is a smart NixOS rebuild wrapper that summarises warnings, deprecations, and suggests optimisations based on your config.",
 	Version: version,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(color.CyanString(titleArt))
+		fmt.Println(style.Cyan.Render(titleArt))
 		cmd.Help()
 	},
 }

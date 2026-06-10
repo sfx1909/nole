@@ -11,8 +11,8 @@ import (
 
 	"github.com/briandowns/spinner"
 	"github.com/charmbracelet/huh"
-	"github.com/fatih/color"
 	"github.com/sfx1909/nole/internal/flake"
+	"github.com/sfx1909/nole/internal/style"
 )
 
 type Match struct {
@@ -32,7 +32,7 @@ func Run(apply bool, format Format) error {
 	}
 
 	s := spinner.New(spinner.CharSets[14], 80*time.Millisecond)
-	s.Suffix = color.New(color.Faint).Sprint("  Evaluating config")
+	s.Suffix = style.Faint.Render("  Evaluating config")
 	s.Start()
 
 	packages, err := evalPackages(ctx)
@@ -44,7 +44,7 @@ func Run(apply bool, format Format) error {
 	matches := match(rules, packages)
 
 	if len(matches) == 0 {
-		fmt.Println(color.GreenString("  󰄬  No optimisations found"))
+		fmt.Println(style.Green.Render("  󰄬  No optimisations found"))
 		fmt.Println()
 		return nil
 	}
@@ -65,14 +65,14 @@ func Run(apply bool, format Format) error {
 
 	if !proceed {
 		fmt.Printf("  %s Run with %s to apply all without prompting\n\n",
-			color.New(color.Faint).Sprint("→"),
-			color.CyanString("--apply"),
+			style.Faint.Render("→"),
+			style.Cyan.Render("--apply"),
 		)
 		return nil
 	}
 
 	if len(selected) == 0 {
-		fmt.Println(color.New(color.Faint).Sprint("  Nothing selected"))
+		fmt.Println(style.Faint.Render("  Nothing selected"))
 		fmt.Println()
 		return nil
 	}
@@ -111,9 +111,9 @@ func selectMatches(matches []Match) (proceed bool, selected []Match, err error) 
 				Options(options...).
 				Value(&picked),
 		).WithHideFunc(func() bool { return !proceed }),
-	).WithTheme(huh.ThemeCharm())
+	)
 
-	if err := form.Run(); err != nil {
+	if err := style.RunForm(form); err != nil {
 		return false, nil, err
 	}
 
@@ -162,20 +162,20 @@ func match(rules []Rule, packages []string) []Match {
 }
 
 func printMatches(matches []Match) {
-	fmt.Println(color.New(color.Bold).Sprint("  Optimisations"))
+	fmt.Println(style.Bold.Render("  Optimisations"))
 	for _, m := range matches {
-		fmt.Printf("  %s  %s\n", color.CyanString(""), m.Rule.Name)
-		fmt.Printf("      %s\n", color.New(color.Faint).Sprint(m.Rule.Description))
+		fmt.Printf("  %s  %s\n", style.Cyan.Render(""), m.Rule.Name)
+		fmt.Printf("      %s\n", style.Faint.Render(m.Rule.Description))
 		for k, v := range m.Suggestions {
 			v = strings.TrimSpace(v)
 			if strings.Contains(v, "\n") {
 				lines := strings.Split(v, "\n")
-				fmt.Printf("      %s %s = %s\n", color.New(color.Faint).Sprint("·"), color.YellowString(k), lines[0])
+				fmt.Printf("      %s %s = %s\n", style.Faint.Render("·"), style.Yellow.Render(k), lines[0])
 				for _, line := range lines[1:] {
-					fmt.Printf("               %s\n", color.New(color.Faint).Sprint(line))
+					fmt.Printf("               %s\n", style.Faint.Render(line))
 				}
 			} else {
-				fmt.Printf("      %s %s = %s\n", color.New(color.Faint).Sprint("·"), color.YellowString(k), color.New(color.Faint).Sprint(v))
+				fmt.Printf("      %s %s = %s\n", style.Faint.Render("·"), style.Yellow.Render(k), style.Faint.Render(v))
 			}
 		}
 		fmt.Println()
@@ -244,36 +244,35 @@ func writeDetectedSection(sb *strings.Builder, matches []Match, snippet func(m M
 }
 
 func printGenerated(matches []Match, format Format) {
-	fmt.Println(color.New(color.Bold).Sprint("  Generated"))
-	faint := color.New(color.Faint)
+	fmt.Println(style.Bold.Render("  Generated"))
 
 	switch format {
 	case FormatFlakePart:
 		for _, m := range matches {
-			fmt.Printf("  %s nole/%s.nix\n", color.CyanString("󰈔"), m.Rule.ID)
+			fmt.Printf("  %s nole/%s.nix\n", style.Cyan.Render("󰈔"), m.Rule.ID)
 		}
-		fmt.Printf("  %s nole/README.md\n\n", color.CyanString("󰈔"))
-		fmt.Printf("  %s Add %s to your flake-parts imports (e.g. via import-tree),\n", faint.Sprint("→"), color.CyanString("./nole"))
-		fmt.Printf("  %s then reference these in a host's module list:\n", faint.Sprint(" "))
+		fmt.Printf("  %s nole/README.md\n\n", style.Cyan.Render("󰈔"))
+		fmt.Printf("  %s Add %s to your flake-parts imports (e.g. via import-tree),\n", style.Faint.Render("→"), style.Cyan.Render("./nole"))
+		fmt.Printf("  %s then reference these in a host's module list:\n", style.Faint.Render(" "))
 		for _, m := range matches {
-			fmt.Printf("  %s config.flake.nixosModules.\"%s\"\n", faint.Sprint(" "), m.Rule.ID)
+			fmt.Printf("  %s config.flake.nixosModules.\"%s\"\n", style.Faint.Render(" "), m.Rule.ID)
 		}
 	case FormatFlake:
-		fmt.Printf("  %s nole/flake.nix\n", color.CyanString("󰈔"))
-		fmt.Printf("  %s nole/README.md\n\n", color.CyanString("󰈔"))
-		fmt.Printf("  %s Add as a flake input, e.g.:\n", faint.Sprint("→"))
-		fmt.Printf("  %s nole-optimizations.url = \"path:./nole\";\n", faint.Sprint(" "))
-		fmt.Printf("  %s then import inputs.nole-optimizations.nixosModules.default\n", faint.Sprint(" "))
-		fmt.Printf("  %s (or pick individual modules by id)\n", faint.Sprint(" "))
+		fmt.Printf("  %s nole/flake.nix\n", style.Cyan.Render("󰈔"))
+		fmt.Printf("  %s nole/README.md\n\n", style.Cyan.Render("󰈔"))
+		fmt.Printf("  %s Add as a flake input, e.g.:\n", style.Faint.Render("→"))
+		fmt.Printf("  %s nole-optimizations.url = \"path:./nole\";\n", style.Faint.Render(" "))
+		fmt.Printf("  %s then import inputs.nole-optimizations.nixosModules.default\n", style.Faint.Render(" "))
+		fmt.Printf("  %s (or pick individual modules by id)\n", style.Faint.Render(" "))
 	default:
 		for _, m := range matches {
-			fmt.Printf("  %s nole/optimizations/%s.nix\n", color.CyanString("󰈔"), m.Rule.ID)
+			fmt.Printf("  %s nole/optimizations/%s.nix\n", style.Cyan.Render("󰈔"), m.Rule.ID)
 		}
-		fmt.Printf("  %s nole/default.nix\n", color.CyanString("󰈔"))
-		fmt.Printf("  %s nole/README.md\n\n", color.CyanString("󰈔"))
-		fmt.Printf("  %s Import %s in your flake, then enable via:\n", faint.Sprint("→"), color.CyanString("./nole"))
+		fmt.Printf("  %s nole/default.nix\n", style.Cyan.Render("󰈔"))
+		fmt.Printf("  %s nole/README.md\n\n", style.Cyan.Render("󰈔"))
+		fmt.Printf("  %s Import %s in your flake, then enable via:\n", style.Faint.Render("→"), style.Cyan.Render("./nole"))
 		for _, m := range matches {
-			fmt.Printf("  %s modules.optimizations.%s.enable = true;\n", faint.Sprint(" "), m.Rule.ID)
+			fmt.Printf("  %s modules.optimizations.%s.enable = true;\n", style.Faint.Render(" "), m.Rule.ID)
 		}
 	}
 	fmt.Println()

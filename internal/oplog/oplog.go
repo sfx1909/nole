@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/fatih/color"
+	"github.com/sfx1909/nole/internal/style"
 )
 
 // Entry is a single recorded operation.
@@ -113,9 +113,9 @@ func PrintRecent(n int) error {
 		return fmt.Errorf("failed to read history: %w", err)
 	}
 
-	fmt.Println(color.New(color.Bold).Sprint("  History"))
+	fmt.Println(style.Bold.Render("  History"))
 	if len(entries) == 0 {
-		fmt.Println(color.New(color.Faint).Sprint("  No operations recorded yet"))
+		fmt.Println(style.Faint.Render("  No operations recorded yet"))
 		fmt.Println()
 		return nil
 	}
@@ -123,8 +123,8 @@ func PrintRecent(n int) error {
 	for _, e := range entries {
 		ts := e.Time.Local().Format("2006-01-02 15:04")
 		fmt.Printf("  %s  %s  %-7s %s\n",
-			color.CyanString(""),
-			color.New(color.Faint).Sprint(ts),
+			style.Cyan.Render(""),
+			style.Faint.Render(ts),
 			e.Action,
 			e.Summary,
 		)

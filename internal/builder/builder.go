@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
-	"github.com/fatih/color"
 	"github.com/sfx1909/nole/internal/flake"
 	"github.com/sfx1909/nole/internal/git"
 	"github.com/sfx1909/nole/internal/output"
+	"github.com/sfx1909/nole/internal/style"
 	"golang.org/x/term"
 )
 
@@ -42,7 +42,7 @@ func RunWithContext(ctx *flake.Context) error {
 	}
 
 	s := spinner.New(spinner.CharSets[14], 80*time.Millisecond)
-	s.Suffix = color.New(color.Faint).Sprintf("  Building NixOS (%s#%s)", ctx.FlakePath, ctx.ConfigName)
+	s.Suffix = style.Faint.Render(fmt.Sprintf("  Building NixOS (%s#%s)", ctx.FlakePath, ctx.ConfigName))
 	s.Start()
 
 	cmd := exec.Command("sudo", "nixos-rebuild", "switch", "--flake", fmt.Sprintf("%s#%s", ctx.FlakePath, ctx.ConfigName))
@@ -79,13 +79,13 @@ func RunWithContext(ctx *flake.Context) error {
 	s.Stop()
 
 	if err := cmd.Wait(); err != nil {
-		color.Red("  Build failed")
+		fmt.Println(style.Red.Render("  Build failed"))
 		summary.Print()
 		summary.PrintLog()
 		return err
 	}
 
-	fmt.Println(color.GreenString("  󰄬  Build successful"))
+	fmt.Println(style.Green.Render("  󰄬  Build successful"))
 	summary.Print()
 
 	if err := git.PromptStageAndCommit(ctx.FlakePath); err != nil {
@@ -100,8 +100,8 @@ func EnsureSudo() error {
 		return nil
 	}
 
-	fmt.Println(color.New(color.Faint).Sprint("  Sudo is required to rebuild NixOS"))
-	fmt.Print(color.CyanString("  Password: "))
+	fmt.Println(style.Faint.Render("  Sudo is required to rebuild NixOS"))
+	fmt.Print(style.Cyan.Render("  Password: "))
 	pwd, err := term.ReadPassword(int(os.Stdin.Fd()))
 	// clear the 2 prompt lines
 	fmt.Print("\033[2K\r\033[1A\033[2K\r")
