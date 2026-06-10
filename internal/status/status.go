@@ -129,6 +129,8 @@ func printFlakeStatus() {
 		return
 	}
 
+	fmt.Printf("  %s  flake: %s#%s\n", color.CyanString("󱄅"), ctx.FlakePath, ctx.ConfigName)
+
 	if git.IsDirty(ctx.FlakePath) {
 		fmt.Printf("  %s  flake repo: uncommitted changes\n", color.YellowString(""))
 	} else {
