@@ -11,10 +11,10 @@ const (
 	// nole/default.nix). This is the original/default format.
 	FormatModule Format = "module"
 
-	// FormatFlakePart generates flake.modules.nixos.<id> attrsets, one
-	// per file, suitable for import-tree / Dendritic-style flake-parts
-	// configs. Opt-in happens by listing the module in a host's module
-	// list, not via an enable option.
+	// FormatFlakePart generates flake.nixosModules.<id> attrsets, one
+	// per file, suitable for import-tree / flake-parts configs. Opt-in
+	// happens by listing the module in a host's module list, not via an
+	// enable option.
 	FormatFlakePart Format = "flake-part"
 
 	// FormatFlake generates a small standalone flake under ./nole that
