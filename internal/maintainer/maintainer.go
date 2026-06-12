@@ -93,7 +93,11 @@ func rebuildNeeded(ctx *flake.Context) (bool, string, error) {
 		return false, "", nil
 	}
 
+	s = spinner.New(spinner.CharSets[14], 80*time.Millisecond)
+	s.Suffix = color.New(color.Faint).Sprint("  Building new system")
+	s.Start()
 	diffOut, _ := storeDiff(ctx)
+	s.Stop()
 	return true, diffOut, nil
 }
 
