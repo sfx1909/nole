@@ -2,3 +2,4 @@ nole
 *.log
 /rules.toml
 vendor/
+/result

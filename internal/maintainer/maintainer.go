@@ -4,16 +4,17 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
-	"time"
 
-	"github.com/briandowns/spinner"
-	"github.com/fatih/color"
 	"github.com/sfx1909/nole/internal/builder"
+	"github.com/sfx1909/nole/internal/cleaner"
 	"github.com/sfx1909/nole/internal/flake"
 	"github.com/sfx1909/nole/internal/git"
+	"github.com/sfx1909/nole/internal/style"
 )
 
-func Run() error {
+// Run updates flake inputs and rebuilds if needed. If clean is true, it also
+// runs garbage collection and store optimisation afterwards (nole clean --apply).
+func Run(clean bool) error {
 	ctx, err := flake.Detect()
 	if err != nil {
 		return err
@@ -32,54 +33,61 @@ func Run() error {
 		return err
 	}
 
+	var buildErr error
 	if !needed {
-		fmt.Println(color.GreenString("  󰄬  System is up to date"))
+		fmt.Println(style.Green.Render("  󰄬  System is up to date"))
 		fmt.Println()
 		if err := git.PromptStageAndCommit(ctx.FlakePath); err != nil {
 			return err
 		}
-		printTips(ctx)
-		return nil
+	} else {
+		// sudo only needed for the actual rebuild
+		notify("Nole requires sudo to apply NixOS changes")
+		if err := builder.EnsureSudo(); err != nil {
+			return err
+		}
+		defer exec.Command("sudo", "-k").Run()
+
+		printDiff(diff)
+		buildErr = builder.RunWithContext(ctx)
 	}
 
-	// sudo only needed for the actual rebuild
-	notify("Nole requires sudo to apply NixOS changes")
-	if err := builder.EnsureSudo(); err != nil {
-		return err
-	}
-	defer exec.Command("sudo", "-k").Run()
+	printTips(ctx, clean)
 
-	printDiff(diff)
-	err = builder.RunWithContext(ctx)
-	printTips(ctx)
-	return err
+	if buildErr != nil {
+		return buildErr
+	}
+
+	if clean {
+		fmt.Println()
+		return cleaner.Run(true)
+	}
+
+	return nil
 }
 
 func updateFlake(flakePath string) error {
-	s := spinner.New(spinner.CharSets[14], 80*time.Millisecond)
-	s.Suffix = color.New(color.Faint).Sprint("  Updating flake inputs")
-	s.Start()
-
-	cmd := exec.Command("nix", "flake", "update", "--flake", flakePath)
-	out, err := cmd.CombinedOutput()
-	s.Stop()
-
+	var out []byte
+	err := style.Spin("  Updating flake inputs", func() error {
+		var cmdErr error
+		out, cmdErr = exec.Command("nix", "flake", "update", "--flake", flakePath).CombinedOutput()
+		return cmdErr
+	})
 	if err != nil {
 		return fmt.Errorf("flake update failed: %s", strings.TrimSpace(string(out)))
 	}
 
-	fmt.Println(color.GreenString("  󰚰  Flake inputs updated"))
+	fmt.Println(style.Green.Render("  󰚰  Flake inputs updated"))
 	return nil
 }
 
 func rebuildNeeded(ctx *flake.Context) (bool, string, error) {
-	s := spinner.New(spinner.CharSets[14], 80*time.Millisecond)
-	s.Suffix = color.New(color.Faint).Sprint("  Checking for changes")
-	s.Start()
-
-	// compare derivation paths — evaluation only, no building
-	newDrv, err := newSystemDrv(ctx)
-	s.Stop()
+	var newDrv string
+	err := style.Spin("  Checking for changes", func() error {
+		var evalErr error
+		newDrv, evalErr = newSystemDrv(ctx)
+		return evalErr
+	})
 	if err != nil {
 		return false, "", err
 	}
@@ -93,11 +101,11 @@ func rebuildNeeded(ctx *flake.Context) (bool, string, error) {
 		return false, "", nil
 	}
 
-	s = spinner.New(spinner.CharSets[14], 80*time.Millisecond)
-	s.Suffix = color.New(color.Faint).Sprint("  Building new system")
-	s.Start()
-	diffOut, _ := storeDiff(ctx)
-	s.Stop()
+	var diffOut string
+	_ = style.Spin("  Building new system", func() error {
+		diffOut, _ = storeDiff(ctx)
+		return nil
+	})
 	return true, diffOut, nil
 }
 
@@ -117,12 +125,6 @@ func currentSystemDrv() (string, error) {
 		return "", fmt.Errorf("could not query current system derivation: %w", err)
 	}
 	return strings.TrimSpace(string(out)), nil
-}
-
-func isGitDirty(path string) bool {
-	cmd := exec.Command("git", "-C", path, "status", "--porcelain")
-	out, err := cmd.Output()
-	return err == nil && len(strings.TrimSpace(string(out))) > 0
 }
 
 func storeDiff(ctx *flake.Context) (string, error) {
@@ -145,31 +147,37 @@ func printDiff(diff string) {
 		return
 	}
 
-	fmt.Println(color.New(color.Bold).Sprint("  Changes"))
+	fmt.Println(style.Bold.Render("  Changes"))
 	for _, line := range strings.Split(strings.TrimSpace(diff), "\n") {
 		if strings.Contains(line, "→") {
-			fmt.Printf("  %s %s\n", color.CyanString(""), color.New(color.Faint).Sprint(line))
+			fmt.Printf("  %s %s\n", style.Cyan.Render(""), style.Faint.Render(line))
 		} else {
-			fmt.Printf("    %s\n", color.New(color.Faint).Sprint(line))
+			fmt.Printf("    %s\n", style.Faint.Render(line))
 		}
 	}
 	fmt.Println()
 }
 
-func printTips(ctx *flake.Context) {
+func printTips(ctx *flake.Context, clean bool) {
 	var tips []string
 
-	if isGitDirty(ctx.FlakePath) {
-		tips = append(tips, "Your config has uncommitted changes — consider running "+color.CyanString("git commit")+" to keep your history clean")
+	if git.IsDirty(ctx.FlakePath) {
+		tips = append(tips, "Your config has uncommitted changes — consider running "+style.Cyan.Render("git commit")+" to keep your history clean")
+	}
+
+	if !clean {
+		if dead, err := cleaner.PreviewDead(); err == nil && dead > 0 {
+			tips = append(tips, fmt.Sprintf("%d store paths are garbage — run %s to reclaim space", dead, style.Cyan.Render("nole clean --apply")))
+		}
 	}
 
 	if len(tips) == 0 {
 		return
 	}
 
-	fmt.Println(color.New(color.Bold).Sprint("  Tips"))
+	fmt.Println(style.Bold.Render("  Tips"))
 	for _, t := range tips {
-		fmt.Printf("  %s %s\n", color.YellowString(""), t)
+		fmt.Printf("  %s %s\n", style.Yellow.Render(""), t)
 	}
 	fmt.Println()
 }

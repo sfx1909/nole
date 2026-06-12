@@ -1,7 +1,6 @@
 package git
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"os"
@@ -9,7 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fatih/color"
+	"github.com/charmbracelet/huh"
+	"github.com/sfx1909/nole/internal/style"
 )
 
 func porcelain(repoPath string) ([]string, error) {
@@ -42,7 +42,6 @@ func UntrackedNixFiles(repoPath string) ([]string, error) {
 	return files, nil
 }
 
-
 // PromptStageAndCommit finds all changed .nix files post-build, offers to stage
 // any unstaged ones, then prompts to commit if there is anything staged.
 func PromptStageAndCommit(repoPath string) error {
@@ -74,19 +73,19 @@ func PromptStageAndCommit(repoPath string) error {
 		return nil
 	}
 
-	fmt.Println(color.YellowString("\n  Changed .nix files:"))
+	fmt.Println(style.Yellow.Render("\n  Changed .nix files:"))
 	var unstaged []string
 	for _, e := range changed {
-		marker := color.New(color.Faint).Sprint("·")
+		marker := style.Faint.Render("·")
 		if !e.staged {
-			marker = color.YellowString("·")
+			marker = style.Yellow.Render("·")
 			unstaged = append(unstaged, e.file)
 		}
 		fmt.Printf("    %s %s\n", marker, e.file)
 	}
 	fmt.Println()
 
-	if !confirm("  Stage and commit?") {
+	if !style.Confirm("  Stage and commit?") {
 		return nil
 	}
 
@@ -97,10 +96,18 @@ func PromptStageAndCommit(repoPath string) error {
 		}
 	}
 
-	fmt.Print(color.CyanString("  Commit message: "))
-	msg, err := readLine()
-	if err != nil || strings.TrimSpace(msg) == "" {
-		fmt.Println(color.New(color.Faint).Sprint("  Skipping commit — empty message"))
+	var msg string
+	form := huh.NewForm(
+		huh.NewGroup(
+			huh.NewInput().
+				Title("  Commit message").
+				Value(&msg),
+		),
+	)
+	_ = style.RunForm(form)
+
+	if strings.TrimSpace(msg) == "" {
+		fmt.Println(style.Faint.Render("  Skipping commit — empty message"))
 		return nil
 	}
 
@@ -109,7 +116,7 @@ func PromptStageAndCommit(repoPath string) error {
 		return fmt.Errorf("git commit failed: %s", strings.TrimSpace(string(out)))
 	}
 
-	fmt.Println(color.GreenString("  󰄬  Committed"))
+	fmt.Println(style.Green.Render("  󰄬  Committed"))
 	return nil
 }
 
@@ -139,19 +146,19 @@ func CommitLockIfOnly(repoPath string) error {
 		return fmt.Errorf("git commit: %s", strings.TrimSpace(string(out)))
 	}
 
-	fmt.Println(color.GreenString("  󰄬  Committed lock file"))
+	fmt.Println(style.Green.Render("  󰄬  Committed lock file"))
 	return nil
 }
 
 // PromptStage lists unstaged .nix files and asks the user whether to stage them.
 func PromptStage(repoPath string, files []string) error {
-	fmt.Println(color.YellowString("\n  Uncommitted .nix files detected:"))
+	fmt.Println(style.Yellow.Render("\n  Uncommitted .nix files detected:"))
 	for _, f := range files {
-		fmt.Printf("    %s %s\n", color.New(color.Faint).Sprint("·"), f)
+		fmt.Printf("    %s %s\n", style.Faint.Render("·"), f)
 	}
 	fmt.Println()
 
-	if !confirm("  Stage these files?") {
+	if !style.Confirm("  Stage these files?") {
 		return nil
 	}
 
@@ -161,22 +168,27 @@ func PromptStage(repoPath string, files []string) error {
 		return fmt.Errorf("git add failed: %s", strings.TrimSpace(string(out)))
 	}
 
-	fmt.Println(color.GreenString("  󰄬  Files staged"))
+	fmt.Println(style.Green.Render("  󰄬  Files staged"))
 	return nil
 }
 
-
-func confirm(prompt string) bool {
-	fmt.Printf("%s [y/N] ", color.CyanString(prompt))
-	input, _ := readLine()
-	return strings.ToLower(strings.TrimSpace(input)) == "y"
+// Confirm prompts the user with a themed y/N question and returns true for "Yes".
+func Confirm(prompt string) bool {
+	return style.Confirm(prompt)
 }
 
-var stdinReader = bufio.NewReader(os.Stdin)
-
-func readLine() (string, error) {
-	line, err := stdinReader.ReadString('\n')
-	return strings.TrimRight(line, "\r\n"), err
+// IsDirty reports whether the git repo at path has any uncommitted changes.
+func IsDirty(path string) bool {
+	lines, err := porcelain(path)
+	if err != nil {
+		return false
+	}
+	for _, line := range lines {
+		if strings.TrimSpace(line) != "" {
+			return true
+		}
+	}
+	return false
 }
 
 var errNixFound = errors.New("found")

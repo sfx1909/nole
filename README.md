@@ -19,13 +19,48 @@ Updates flake inputs and rebuilds only if needed.
 - Compares derivation paths to detect if a rebuild is actually needed
 - Skips the rebuild if the system is already up to date
 - Prompts to stage and commit any changed `.nix` files
+- Tips you to run `nole clean` if old generations/store paths have piled up
+- Run with `--clean` to also garbage-collect old generations and optimise the store afterwards
 
 ### `nole analyse`
 Detects installed packages and suggests NixOS optimisations.
 
 - Evaluates your system packages
 - Matches against known optimisation rules (OBS, gaming, COSMIC, PipeWire, Docker)
-- Run with `--apply` to generate ready-to-import NixOS modules under `./nole/optimizations/`
+- If any are found, asks whether to generate NixOS modules and lets you pick which ones
+  via a checkbox list (defaults to all selected), generating ready-to-import modules
+  under `./nole/optimizations/`
+- Run with `--apply` to generate modules for everything detected without prompting
+  (useful for scripts/CI)
+
+### `nole status`
+Quick read-only dashboard of system and flake state.
+
+- Current and total NixOS generations
+- `/nix/store` disk usage
+- Whether the flake repo has uncommitted changes
+- Age of `flake.lock`
+
+### `nole clean`
+Garbage-collects old generations and optimises the Nix store.
+
+- Previews how many store paths are eligible for collection
+- Run with `--apply` to run `nix-collect-garbage -d` and `nix store optimise` (requires sudo)
+- Records the freed space in `nole history`
+
+### `nole purge [path]`
+Finds and removes common dev build artifacts.
+
+- Looks for `node_modules`, `target`, `dist`, `build`, `.direnv`, `__pycache__`, `.venv`,
+  and nix `result`/`result-*` build symlinks (defaults to the current flake's path)
+- Run with `--apply` to delete them
+- Records what was removed in `nole history`
+
+### `nole history`
+Shows recent operations recorded by `clean --apply` and `purge --apply`.
+
+### `nole completion`
+Generates shell completion scripts (`bash`, `zsh`, `fish`, `powershell`), provided by Cobra.
 
 ## Installation
 
@@ -62,6 +97,23 @@ Config is loaded in priority order:
 
 ```toml
 flake = "/home/you/nixos-config"
+
+[analyse]
+format = "module"
+
+[maintain]
+clean = true
 ```
 
-The flake path can also be set per-invocation via the `NOLE_FLAKE` environment variable.
+- `flake` — path to your flake, optionally with `#<configuration>` to pin which
+  `nixosConfigurations` entry to use (e.g. `/home/you/nixos-config#hostname`). If the
+  `#<configuration>` suffix is omitted, `nole` resolves it automatically (matching the
+  hostname, then the running system's config name, erroring if multiple configs match
+  none of those). If `flake` is unset entirely, `nole` searches the current directory and
+  its parents for a `flake.nix` exposing `nixosConfigurations`. Can also be set
+  per-invocation via the `NOLE_FLAKE` environment variable (`NOLE_FLAKE=/path/to/flake#hostname`),
+  which takes priority over both the config file and auto-discovery.
+- `analyse.format` — default `--format` for `nole analyse` (`module`, `flake-part`, or `flake`).
+- `maintain.clean` — if `true`, `nole maintain` always behaves as if `--clean` was passed
+  (garbage-collect old generations and optimise the store after a successful run). Override
+  per-invocation with `--clean`/`--no-clean`.
