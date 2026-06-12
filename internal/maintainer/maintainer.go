@@ -101,7 +101,11 @@ func rebuildNeeded(ctx *flake.Context) (bool, string, error) {
 		return false, "", nil
 	}
 
-	diffOut, _ := storeDiff(ctx)
+	var diffOut string
+	_ = style.Spin("  Building new system", func() error {
+		diffOut, _ = storeDiff(ctx)
+		return nil
+	})
 	return true, diffOut, nil
 }
 

@@ -31,3 +31,7 @@ A NixOS configuration manager, modeled as the NixOS counterpart to
 - Destructive commands (`clean`, `purge`) preview by default and require `--apply`/`-a`
   to execute, prompting via `internal/git.Confirm` and recording an entry via
   `internal/oplog` on success.
+- `flake.nix` is built with `pkgs.buildGoModule`, which pins `vendorHash`. Any change to
+  `go.mod`/`go.sum` (e.g. adding/removing a dependency) requires updating `vendorHash` in
+  `flake.nix`, otherwise `nix build`/`nole maintain` for this repo will fail with a hash
+  mismatch.
